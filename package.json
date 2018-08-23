@@ -1,5 +1,5 @@
 {
-  "name": "@celo/ganache-core",
+  "name": "ganache-core",
   "version": "2.2.1",
   "main": "./index.js",
   "engines": {
