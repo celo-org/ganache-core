@@ -1,6 +1,7 @@
 language: node_js
 node_js:
   - "node"
+  - "lts/*"
   - "lts/carbon"
 
 addons:
@@ -23,3 +24,6 @@ before_install:
   - npm --version
   - gcc --version
   - g++ --version
+
+after_success:
+  npm run coverage
