@@ -3245,9 +3245,9 @@ ethereumjs-vm@^2.1.0, ethereumjs-vm@^2.3.4, ethereumjs-vm@^2.6.0, "ethereumjs-vm
     rustbn.js "~0.2.0"
     safe-buffer "^5.1.1"
 
-"ethereumjs-vm@https://github.com/celo-org/ethereumjs-vm.git#ed9ec30":
+"ethereumjs-vm@https://github.com/celo-org/ethereumjs-vm.git#a381885":
   version "3.0.0"
-  resolved "https://github.com/celo-org/ethereumjs-vm.git#ed9ec301fad03f4e48771db1e0d0921b0a6963e2"
+  resolved "https://github.com/celo-org/ethereumjs-vm.git#a3818857e9edf69575ec44d4d04b44f13997ab0d"
   dependencies:
     async "^2.1.2"
     async-eventemitter "^0.2.2"
