@@ -1,5 +1,7 @@
 // make sourcemaps work!
-require("source-map-support/register");
+if (process.env.NODE_ENV !== "test") {
+  require("source-map-support/register");
+}
 
 const debug = require("debug")("ganache");
 
