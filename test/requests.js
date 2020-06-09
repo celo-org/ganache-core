@@ -407,22 +407,22 @@ const tests = function(web3) {
       });
     });
 
-    it("should produce a valid signature", async function() {
+    it("should produce a valid signature which results in a matching tx hash", async function() {
       const transaction = {
-        value: "0x10000000",
+        value: "0x1000",
         gasLimit: "0x33450",
         gasPrice: "0x01",
         from: signerAccounts[0],
         to: accounts[1],
-        nonce: "0x01",
+        nonce: "0x0",
         chainId: 1
       };
 
-      // console.log(signerAccounts[0]);
-      const sgn = await signingWeb3.eth.signTransaction(transaction);
-      console.log(sgn);
-
-      // assert.succeed(false);
+      const resp = await signingWeb3.eth.signTransaction(transaction);
+      // hash(true) includes signature
+      const txHash = "0x" + resp.tx.hash(true).toString("hex");
+      const result = await signingWeb3.eth.sendSignedTransaction(resp.raw);
+      assert.strictEqual(result.transactionHash, txHash);
     });
 
     after("shutdown", async function() {
