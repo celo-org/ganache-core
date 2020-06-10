@@ -385,7 +385,7 @@ const tests = function(web3) {
     });
   });
 
-  describe("eth_signTransaction", function() {
+  describe.only("eth_signTransaction", function() {
     let signerAccounts;
     let signingWeb3;
 
@@ -395,6 +395,7 @@ const tests = function(web3) {
     };
 
     const gasPrice = "0x1";
+    const gasPriceFeeCurrencyRatio = 3;
 
     // Load account.
     before(async function() {
@@ -402,7 +403,8 @@ const tests = function(web3) {
       signingWeb3.setProvider(
         Ganache.provider({
           accounts: [acc],
-          gasPrice
+          gasPrice,
+          gasPriceFeeCurrencyRatio
         })
       );
       signerAccounts = await signingWeb3.eth.getAccounts();
@@ -411,7 +413,7 @@ const tests = function(web3) {
       });
     });
 
-    it("should produce a valid signature which results in a matching tx hash", async function() {
+    it("should produce a valid signature which results in matching tx hash", async function() {
       const transaction = {
         value: "0x001",
         from: signerAccounts[0],
@@ -422,6 +424,24 @@ const tests = function(web3) {
 
       const resp = await signingWeb3.eth.signTransaction(transaction);
       assert.strictEqual(resp.tx.gasPrice, gasPrice);
+      // hash(true) includes signature
+      const txHash = utils.addHexPrefix(new Transaction(resp.tx).hash(true).toString("hex"));
+      const result = await signingWeb3.eth.sendSignedTransaction(resp.raw);
+      assert.strictEqual(result.transactionHash, txHash);
+    });
+
+    it("should produce a valid signature with non-native feeCurrency and correct gasPrice", async function() {
+      const transaction = {
+        value: "0x001",
+        feeCurrency: "0xce10",
+        from: signerAccounts[0],
+        to: accounts[1],
+        nonce: "0x1",
+        chainId: 1
+      };
+
+      const resp = await signingWeb3.eth.signTransaction(transaction);
+      assert.strictEqual(to.number(resp.tx.gasPrice), to.number(gasPrice) * gasPriceFeeCurrencyRatio);
       // hash(true) includes signature
       const txHash = utils.addHexPrefix(new Transaction(resp.tx).hash(true).toString("hex"));
       const result = await signingWeb3.eth.sendSignedTransaction(resp.raw);
