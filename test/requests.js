@@ -1703,7 +1703,7 @@ const tests = function(web3) {
         jsonrpc: "2.0",
         id: 1234,
         method: "personal_importRawKey",
-        params: ["0x0123456789012345678901234567890123456789012345678901234567890123", "password"]
+        params: ["0123456789012345678901234567890123456789012345678901234567890123", "password"]
       });
       assert.strictEqual(
         result.result,
