@@ -390,16 +390,19 @@ const tests = function(web3) {
     let signingWeb3;
 
     const acc = {
-      balance: "0x500000",
+      balance: "0x10000000",
       secretKey: "0xa6d66f02cd45a13982b99a5abf3deab1f67cf7be9fee62f0a072cb70896342e4"
     };
+
+    const gasPrice = "0x1";
 
     // Load account.
     before(async function() {
       signingWeb3 = new Web3();
       signingWeb3.setProvider(
         Ganache.provider({
-          accounts: [acc]
+          accounts: [acc],
+          gasPrice
         })
       );
       signerAccounts = await signingWeb3.eth.getAccounts();
@@ -410,9 +413,7 @@ const tests = function(web3) {
 
     it("should produce a valid signature which results in a matching tx hash", async function() {
       const transaction = {
-        value: "0x1000",
-        gasLimit: "0x33450",
-        gasPrice: "0x01",
+        value: "0x001",
         from: signerAccounts[0],
         to: accounts[1],
         nonce: "0x0",
@@ -420,8 +421,9 @@ const tests = function(web3) {
       };
 
       const resp = await signingWeb3.eth.signTransaction(transaction);
+      assert.strictEqual(resp.tx.gasPrice, gasPrice);
       // hash(true) includes signature
-      const txHash = "0x" + resp.tx.hash(true).toString("hex");
+      const txHash = utils.addHexPrefix(new Transaction(resp.tx).hash(true).toString("hex"));
       const result = await signingWeb3.eth.sendSignedTransaction(resp.raw);
       assert.strictEqual(result.transactionHash, txHash);
     });
