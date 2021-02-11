@@ -1,5 +1,7 @@
 // make sourcemaps work!
-require("source-map-support/register");
+if (process.env.NODE_ENV !== "test") {
+  require("source-map-support/register");
+}
 
 const debug = require("debug")("ganache");
 
@@ -18,6 +20,7 @@ try {
     debug("Optional dependencies installed; exporting ganache-core with native optional dependencies.");
   }
 } catch (nativeError) {
+  console.error(nativeError);
   debug(nativeError);
 
   // grabbing the native/optional deps failed, try using our webpacked build.
