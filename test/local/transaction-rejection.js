@@ -1,29 +1,55 @@
 const bootstrap = require("../helpers/contract/bootstrap");
 const assert = require("assert");
 
+const path = require("path");
+const targz = require("targz");
+const rimraf = require("rimraf");
+const ContractKit = require("@celo/contractkit");
+
+const cGLD = "0xaa86dda78e9434aca114b6676fc742a18d15a1cc";
+const cUSD = "0x10a736a7b223f1fe1050264249d1abb975741e75";
+const amount = "999999567453463472346";
+const gasPrice = 12345678901;
+
 describe("Transaction rejection", function() {
   let context;
+  let kit;
+  let goldtoken;
+  let stabletoken;
 
   before("Setting up web3 and contract", async function() {
-    this.timeout(10000);
+    this.timeout(17500);
 
     const contractRef = {
       contractFiles: ["EstimateGas"],
       contractSubdirectory: "gas"
     };
 
+    await decompressChain(path.join(__dirname, "../../devchain.tar.gz"), path.join(__dirname, "/devchain"));
+
     const ganacheProviderOptions = {
       // important: we want to make sure we get tx rejections as rpc errors even
       // if we don't want runtime errors as RPC erros
-      vmErrorsOnRPCResponse: false
+      vmErrorsOnRPCResponse: false,
+      gasLimit: 0x1312d00f,
+      mnemonic: "concert load couple harbor equip island argue ramp clarify fence smart topic",
+      db_path: path.join(__dirname, "/devchain")
     };
 
     context = await bootstrap(contractRef, ganacheProviderOptions);
+    kit = ContractKit.newKitFromWeb3(context.web3);
+    goldtoken = await kit.contracts.getGoldToken();
+    stabletoken = await kit.contracts.getStableToken();
   });
 
   before("lock account 1", async function() {
     const { accounts, web3 } = context;
     await web3.eth.personal.lockAccount(accounts[1]);
+  });
+
+  after(function() {
+    console.log("Removing devchain folder");
+    rimraf.sync(path.join(__dirname, "/devchain"));
   });
 
   it("should reject transaction if nonce is incorrect", async function() {
@@ -76,9 +102,95 @@ describe("Transaction rejection", function() {
     const { web3 } = context;
     await testTransactionForRejection(
       {
-        value: web3.utils.toWei("100000", "ether")
+        value: web3.utils.toWei("1000000000000", "ether")
       },
       "sender doesn't have enough funds to send tx"
+    );
+  });
+
+  it("should correctly send cGLD and deduce cGLD as fee currency", async function() {
+    const { accounts } = context;
+    const cGLDBalance1 = await goldtoken.balanceOf(accounts[0]);
+    const cUSDBalance1 = await stabletoken.balanceOf(accounts[0]);
+
+    const celotx = await goldtoken.transfer(accounts[1], amount).send({ from: accounts[0], gasPrice });
+    const celoReceipt = await celotx.waitReceipt();
+
+    const cGLDBalance2 = await goldtoken.balanceOf(accounts[0]);
+    const cUSDBalance2 = await stabletoken.balanceOf(accounts[0]);
+
+    testDeduction(
+      { [cGLD]: cGLDBalance1, [cUSD]: cUSDBalance1 },
+      { [cGLD]: cGLDBalance2, [cUSD]: cUSDBalance2 },
+      cGLD,
+      cGLD,
+      celoReceipt
+    );
+  });
+
+  it("should correctly send cUSD and deduce cGLD as fee currency", async function() {
+    const { accounts } = context;
+    const cGLDBalance1 = await goldtoken.balanceOf(accounts[0]);
+    const cUSDBalance1 = await stabletoken.balanceOf(accounts[0]);
+
+    const celotx = await stabletoken.transfer(accounts[1], amount).send({ from: accounts[0], gasPrice });
+    const celoReceipt = await celotx.waitReceipt();
+
+    const cGLDBalance2 = await goldtoken.balanceOf(accounts[0]);
+    const cUSDBalance2 = await stabletoken.balanceOf(accounts[0]);
+
+    testDeduction(
+      { [cGLD]: cGLDBalance1, [cUSD]: cUSDBalance1 },
+      { [cGLD]: cGLDBalance2, [cUSD]: cUSDBalance2 },
+      cUSD,
+      cGLD,
+      celoReceipt
+    );
+  });
+
+  it("should correctly send cGLD and deduce cUSD as fee currency", async function() {
+    this.timeout(7000); // Because TX's with fee currency take longer to execute
+    const { accounts } = context;
+    const cGLDBalance1 = await goldtoken.balanceOf(accounts[0]);
+    const cUSDBalance1 = await stabletoken.balanceOf(accounts[0]);
+
+    const celotx = await goldtoken
+      .transfer(accounts[1], amount)
+      .send({ from: accounts[0], feeCurrency: cUSD, gasPrice });
+    const celoReceipt = await celotx.waitReceipt();
+
+    const cGLDBalance2 = await goldtoken.balanceOf(accounts[0]);
+    const cUSDBalance2 = await stabletoken.balanceOf(accounts[0]);
+
+    testDeduction(
+      { [cGLD]: cGLDBalance1, [cUSD]: cUSDBalance1 },
+      { [cGLD]: cGLDBalance2, [cUSD]: cUSDBalance2 },
+      cGLD,
+      cUSD,
+      celoReceipt
+    );
+  });
+
+  it("should correctly send cUSD and deduce cUSD as fee currency", async function() {
+    this.timeout(7000); // Because TX's with fee currency take longer to execute
+    const { accounts } = context;
+    const cGLDBalance1 = await goldtoken.balanceOf(accounts[0]);
+    const cUSDBalance1 = await stabletoken.balanceOf(accounts[0]);
+
+    const celotx = await stabletoken
+      .transfer(accounts[1], amount)
+      .send({ from: accounts[0], feeCurrency: cUSD, gasPrice });
+    const celoReceipt = await celotx.waitReceipt();
+
+    const cGLDBalance2 = await goldtoken.balanceOf(accounts[0]);
+    const cUSDBalance2 = await stabletoken.balanceOf(accounts[0]);
+
+    testDeduction(
+      { [cGLD]: cGLDBalance1, [cUSD]: cUSDBalance1 },
+      { [cGLD]: cGLDBalance2, [cUSD]: cUSDBalance2 },
+      cUSD,
+      cUSD,
+      celoReceipt
     );
   });
 
@@ -139,5 +251,48 @@ describe("Transaction rejection", function() {
     } else {
       assert.fail(new Error("eth_sendTransaction responded with empty RPC response"));
     }
+  }
+
+  function testDeduction(balanceBefore, balanceAfter, valueCurrency, feeCurrency, receipt) {
+    if (!receipt) {
+      assert.fail(new Error("TX doesn't have a receipt."));
+    }
+
+    if (!receipt.status) {
+      assert.fail(
+        new Error(`TX should have run successfully. Instead transaction failed (receipt.status ==
+        ${receipt.status})`)
+      );
+    }
+
+    if (valueCurrency === feeCurrency) {
+      assert.strictEqual(
+        balanceAfter[valueCurrency].toNumber(),
+        balanceBefore[valueCurrency]
+          .minus(amount)
+          .minus(receipt.gasUsed * gasPrice)
+          .toNumber()
+      );
+    } else if (valueCurrency === cGLD && feeCurrency === cUSD) {
+      assert.strictEqual(balanceAfter[valueCurrency].toNumber(), balanceBefore[valueCurrency].minus(amount).toNumber());
+      assert.strictEqual(
+        balanceAfter[feeCurrency].toNumber(),
+        balanceBefore[feeCurrency].minus(receipt.gasUsed * gasPrice).toNumber()
+      );
+    }
+  }
+
+  function decompressChain(tarPath, copyChainPath) {
+    return new Promise((resolve, reject) => {
+      targz.decompress({ src: tarPath, dest: copyChainPath }, (err) => {
+        if (err) {
+          console.error(err);
+          reject(err);
+        } else {
+          console.log("Chain decompressed");
+          resolve();
+        }
+      });
+    });
   }
 });

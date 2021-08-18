@@ -19,6 +19,7 @@ declare module "ganache-core" {
       account_keys_path?: string;
       accounts?: object[];
       allowUnlimitedContractSize?: boolean;
+      useExperimentalOpcodes?: boolean;
       blockTime?: number;
       db_path?: string;
       debug?: boolean;
