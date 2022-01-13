@@ -46,7 +46,7 @@
     "lodash": "4.17.14",
     "merkle-patricia-tree": "2.3.2",
     "seedrandom": "3.0.1",
-    "source-map-support": "0.5.12",
+    "source-map-support": "0.5.19",
     "tmp": "0.1.0",
     "web3-provider-engine": "14.2.1",
     "websocket": "1.0.29"
