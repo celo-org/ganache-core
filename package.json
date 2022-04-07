@@ -26,7 +26,7 @@
   "dependencies": {
     "@celo/utils": "1.5.1",
     "abstract-leveldown": "3.0.0",
-    "async": "2.6.2",
+    "async": "3.2.2",
     "bip39": "2.5.0",
     "cachedown": "1.0.0",
     "clone": "2.1.2",
@@ -44,11 +44,11 @@
     "level-sublevel": "6.6.4",
     "levelup": "3.1.1",
     "lodash": "4.17.14",
-    "merkle-patricia-tree": "2.3.2",
+    "merkle-patricia-tree": "4.0.0",
     "seedrandom": "3.0.1",
     "source-map-support": "0.5.12",
     "tmp": "0.1.0",
-    "web3-provider-engine": "14.2.1",
+    "web3-provider-engine": "15.0.1",
     "websocket": "1.0.29"
   },
   "devDependencies": {
