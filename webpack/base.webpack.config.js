@@ -45,17 +45,12 @@ module.exports = (override) => {
       },
       plugins: [
         // ignore these plugins completely
-        new IgnorePlugin(/^(?:electron|ws)$/)
+        new IgnorePlugin({ resourceRegExp: /^(?:electron|ws)$/ })
       ],
       optimization: {
         minimizer: [
           new TerserPlugin({
-            // make it go fast
-            cache: true,
-            // and event faster
             parallel: true,
-            // Must be set to true if using source-maps in production, which we are
-            sourceMap: true,
             terserOptions: {
               mangle: {
                 // some gas tests fail if we mangle fn names. so don't.
